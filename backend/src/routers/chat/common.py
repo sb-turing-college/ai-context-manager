@@ -52,12 +52,13 @@ def build_context_from_request(
     *,
     status_topics: list | None = None,
     documents: list | None = None,
+    library_folders: list | None = None,
     user_facts: list | None = None,
 ) -> list[LLMMessage]:
     """Build chat context.
 
-    When DB-loaded lists are passed (status/documents/user_facts), those are
-    SSOT — same source the UI panels refresh from. FE ctx fields are fallbacks.
+    When DB-loaded lists are passed (status/documents/folders/user_facts), those
+    are SSOT — same source the UI panels refresh from. FE ctx fields are fallbacks.
     """
     messages: list[LLMMessage] = []
     
@@ -68,12 +69,14 @@ def build_context_from_request(
     if ctx.system_prompt:
         messages.append(LLMMessage(role="system", content=ctx.system_prompt))
     
-    # 2. Library documents (DB SSOT preferred)
+    # 2. Library documents + folders (DB SSOT preferred; mirrors UI Library)
     docs_for_llm = documents if documents is not None else list(ctx.documents or [])
     messages.append(
         LLMMessage(
             role="system",
-            content=format_available_documents_block(docs_for_llm),
+            content=format_available_documents_block(
+                docs_for_llm, library_folders
+            ),
         )
     )
     

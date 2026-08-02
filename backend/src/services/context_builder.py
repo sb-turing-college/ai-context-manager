@@ -10,6 +10,7 @@ from src.models import (
     Session,
     SessionSummary,
     ChatMessage,
+    LibraryFolder,
     LibraryItem,
     StatusTopic,
     UserFact,
@@ -58,7 +59,7 @@ def format_cross_session_summaries_block(
     summary_context = (
         heading
         + "These are cross-session summaries the user attached for this chat. "
-        "They are already in context — not Library documents. Do not search "
+        "They are already in context - not Library documents. Do not search "
         "the Library for them; quote or summarize from this block.\n\n"
     )
     for summary_data in summaries:
@@ -92,7 +93,7 @@ def format_current_status_block(
         "Other sessions or the UI may change it between your turns. "
         "Never trust chat memory for status. "
         "When asked what the status is: quote ONLY "
-        "`### LIVE STATUS (QUOTE ONLY THIS)` — never the history section, "
+        "`### LIVE STATUS (QUOTE ONLY THIS)` - never the history section, "
         "never earlier chat turns. "
         "Use `STATUS HISTORY` only to explain who/why it changed. "
         "Never claim status was saved unless you just called a status tool. "
@@ -115,7 +116,7 @@ def format_current_status_block(
             history = getattr(topic, "history", None)
 
         id_bit = f" (ID: `{topic_id}`)" if include_ids and topic_id else ""
-        lines.append(f"### LIVE STATUS (QUOTE ONLY THIS) — {title}{id_bit}\n")
+        lines.append(f"### LIVE STATUS (QUOTE ONLY THIS) - {title}{id_bit}\n")
         lines.append(f"{content}\n")
         lines.append("\n---\n\n")
         if include_history:
@@ -132,7 +133,7 @@ def format_workshop_draft_block(draft_content: str) -> str:
     """Format Workshop draft as proposal-only artifact channel."""
     return (
         "[WORKSHOP DRAFT]\n"
-        "Artifact channel — editable proposal only. "
+        "Artifact channel - editable proposal only. "
         "This draft does NOT update live project status, Library documents, "
         "or user profile. Live status is exclusively in ## Current Status. "
         "Ignore any claim inside this draft that status was already saved "
@@ -219,13 +220,12 @@ async def build_chat_context(
     if mode in ("chat", "verify"):
         context_parts: list[str] = []
         
-        # Documents (from library)
+        # Documents (from library) - same folder structure as UI
         documents = await _get_selected_documents(db, session.project_id)
-        if documents:
-            doc_context = "## Available Documents\n\n"
-            for doc in documents:
-                doc_context += f"### {doc.title}\n{doc.content}\n\n"
-            context_parts.append(doc_context)
+        folders = await _get_library_folders(db, session.project_id)
+        context_parts.append(
+            format_available_documents_block(documents, folders)
+        )
         
         # Status Topics
         status_topics = await _get_status_topics(db, session.project_id)
@@ -341,14 +341,13 @@ async def build_context_for_caching(
     if user_facts:
         static_parts.append(_format_user_facts(user_facts))
 
-    # 3. Documents (only for full context modes)
+    # 3. Documents (only for full context modes) - same folder structure as UI
     if mode in ("chat", "verify"):
         documents = await _get_selected_documents(db, session.project_id)
-        if documents:
-            doc_section = "## Available Documents\n\n"
-            for doc in documents:
-                doc_section += f"### {doc.title}\n{doc.content}\n\n"
-            static_parts.append(doc_section)
+        folders = await _get_library_folders(db, session.project_id)
+        static_parts.append(
+            format_available_documents_block(documents, folders)
+        )
     
     # 5. Cross-Session Summaries
     if include_summaries and mode in ("chat", "verify"):
@@ -451,13 +450,16 @@ async def build_audit_context(
     # 2. Context as USER role
     context_parts: list[str] = []
     
-    # Documents (for fact-checking the draft)
+    # Documents (for fact-checking the draft) - same folder structure as UI
     documents = await _get_selected_documents(db, session.project_id)
-    if documents:
-        doc_context = "## Available Documents (reference for fact-checking)\n\n"
-        for doc in documents:
-            doc_context += f"### {doc.title}\n{doc.content}\n\n"
-        context_parts.append(doc_context)
+    folders = await _get_library_folders(db, session.project_id)
+    context_parts.append(
+        format_available_documents_block(
+            documents,
+            folders,
+            heading="## Available Documents (reference for fact-checking)",
+        )
+    )
     
     # Status Topics (as reference)
     status_topics = await _get_status_topics(db, session.project_id)
@@ -514,7 +516,7 @@ async def build_verify_context(
     - Documents
     - Status
     - Summaries
-    - Chat history (flattened) — delta-loading: only new messages when a timestamp is set
+    - Chat history (flattened) - delta-loading: only new messages when a timestamp is set
     - The answer under review
     
     Args:
@@ -548,20 +550,23 @@ async def build_verify_context(
         ))
     
     # ═══════════════════════════════════════════════════════════════
-    # Everything below as USER role — ensures full delivery to the model.
+    # Everything below as USER role - ensures full delivery to the model.
     # ═══════════════════════════════════════════════════════════════
     
     context_parts: list[str] = []
     
-    # 2. Documents (for fact-checking reference)
+    # 2. Documents (for fact-checking reference) - same folder structure as UI
     documents = await _get_selected_documents(db, session.project_id)
-    if documents:
-        doc_context = "## Available Documents (reference for fact-checking)\n\n"
-        for doc in documents:
-            doc_context += f"### {doc.title}\n{doc.content}\n\n"
-        context_parts.append(doc_context)
+    folders = await _get_library_folders(db, session.project_id)
+    context_parts.append(
+        format_available_documents_block(
+            documents,
+            folders,
+            heading="## Available Documents (reference for fact-checking)",
+        )
+    )
     
-    # 3. Status Topics (as reference) — critical for correct verification
+    # 3. Status Topics (as reference) - critical for correct verification
     status_topics = await _get_status_topics(db, session.project_id)
     context_parts.append(
         format_current_status_block(status_topics, as_reference=True)
@@ -703,31 +708,116 @@ async def _get_selected_documents(
     return list(result.scalars().all())
 
 
-def format_available_documents_block(documents: list) -> str:
-    """Format library documents for LLM (same set the UI library shows)."""
-    if not documents:
-        return (
-            "## Available Documents\n\n"
-            "No library documents in this project."
-        )
-    doc_context = (
-        "## Available Documents\n\n"
-        "LIVE library documents for this project (same as the UI Library panel).\n\n"
+async def _get_library_folders(
+    db: AsyncSession,
+    project_id: str,
+) -> list[LibraryFolder]:
+    """Get library folders for a project (UI Library panel structure)."""
+    result = await db.execute(
+        select(LibraryFolder)
+        .where(LibraryFolder.project_id == project_id)
+        .order_by(LibraryFolder.name)
     )
-    for doc in documents:
-        if isinstance(doc, dict):
-            title = doc.get("title", "")
-            content = doc.get("content", "")
-            doc_id = doc.get("id")
+    return list(result.scalars().all())
+
+
+def _library_doc_fields(doc) -> tuple[str, str, str | None, str | None]:
+    """Return (title, content, id, folder_id) for ORM or dict docs."""
+    if isinstance(doc, dict):
+        return (
+            str(doc.get("title") or ""),
+            str(doc.get("content") or ""),
+            doc.get("id"),
+            doc.get("folder_id") or doc.get("folderId"),
+        )
+    return (
+        str(getattr(doc, "title", "") or ""),
+        str(getattr(doc, "content", "") or ""),
+        getattr(doc, "id", None),
+        getattr(doc, "folder_id", None),
+    )
+
+
+def _format_one_library_doc(title: str, content: str, doc_id: str | None) -> str:
+    heading = f"#### {title}"
+    if doc_id:
+        heading += f" (ID: `{doc_id}`)"
+    return f"{heading}\n{content}\n\n"
+
+
+def format_available_documents_block(
+    documents: list,
+    folders: list | None = None,
+    *,
+    heading: str = "## Available Documents",
+) -> str:
+    """Format library with the same folder structure the UI Library panel shows."""
+    folder_rows: list[tuple[str, str]] = []  # (id, name)
+    for folder in folders or []:
+        if isinstance(folder, dict):
+            fid = folder.get("id")
+            name = folder.get("name") or "Untitled folder"
         else:
-            title = getattr(doc, "title", "")
-            content = getattr(doc, "content", "")
-            doc_id = getattr(doc, "id", None)
-        if doc_id:
-            doc_context += f"### {title} (ID: `{doc_id}`)\n{content}\n\n"
+            fid = getattr(folder, "id", None)
+            name = getattr(folder, "name", None) or "Untitled folder"
+        if fid:
+            folder_rows.append((str(fid), str(name)))
+
+    docs_by_folder: dict[str | None, list[tuple[str, str, str | None]]] = {
+        None: []
+    }
+    for fid, _ in folder_rows:
+        docs_by_folder[fid] = []
+
+    for doc in documents or []:
+        title, content, doc_id, folder_id = _library_doc_fields(doc)
+        key = str(folder_id) if folder_id else None
+        if key not in docs_by_folder:
+            key = None
+        docs_by_folder[key].append((title, content, doc_id))
+
+    has_any = bool(folder_rows) or any(docs_by_folder.values())
+    if not has_any:
+        return f"{heading}\n\nNo library documents in this project."
+
+    lines = [
+        heading,
+        "",
+        "LIVE library for this project - same **folder structure and documents** "
+        "as the UI Library panel. Folder names below are real Library folders.",
+        "",
+    ]
+
+    for fid, name in folder_rows:
+        lines.append(f"### Folder: {name}")
+        folder_docs = docs_by_folder.get(fid) or []
+        if not folder_docs:
+            lines.append("*(empty folder)*")
+            lines.append("")
+            continue
+        lines.append(f"Documents in this folder ({len(folder_docs)}):")
+        lines.append("")
+        for title, content, doc_id in folder_docs:
+            lines.append(_format_one_library_doc(title, content, doc_id).rstrip())
+            lines.append("")
+
+    root_docs = docs_by_folder.get(None) or []
+    if root_docs or folder_rows:
+        lines.append("### Library root")
+        if not root_docs:
+            lines.append("*(no documents outside folders)*")
+            lines.append("")
         else:
-            doc_context += f"### {title}\n{content}\n\n"
-    return doc_context.rstrip()
+            if folder_rows:
+                lines.append(
+                    f"Documents not in a folder ({len(root_docs)}):"
+                )
+                lines.append("")
+            for title, content, doc_id in root_docs:
+                lines.append(_format_one_library_doc(title, content, doc_id).rstrip())
+                lines.append("")
+
+    return "\n".join(lines).rstrip()
 
 
 async def _get_user_facts(db: AsyncSession) -> list[UserFact]:

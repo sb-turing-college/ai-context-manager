@@ -24,6 +24,7 @@ from src.services.context_builder import (
     build_chat_context,
     get_session_summaries,
     _get_selected_documents,
+    _get_library_folders,
     _get_status_topics,
     _get_user_facts,
     format_workshop_draft_block,
@@ -112,11 +113,13 @@ async def run_chat_turn(
         documents = await _get_selected_documents(
             db, session.project_id, limit=None
         )
+        library_folders = await _get_library_folders(db, session.project_id)
         user_facts = await _get_user_facts(db)
 
         # Debug: Log context stats
         print(
             f"📄 Context: {len(documents)} docs (DB), "
+            f"{len(library_folders)} folders (DB), "
             f"{len(status_topics)} status (DB), "
             f"{len(user_facts)} user-facts (DB), "
             f"{len(cross_session_summaries) if cross_session_summaries else 0} cross-summaries"
@@ -129,6 +132,7 @@ async def run_chat_turn(
             cross_session_summaries,
             status_topics=status_topics,
             documents=documents,
+            library_folders=library_folders,
             user_facts=user_facts,
         )
     else:

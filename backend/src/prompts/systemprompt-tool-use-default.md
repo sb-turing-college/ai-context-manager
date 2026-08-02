@@ -71,9 +71,11 @@
 - At most once per prompt
 
 ### search_documents
-- Searches Library documents by query (semantic search)
+- Keyword search over Library document **title/content** (not folder names)
 - Parameters: `query` (search term)
 - Use when: user asks about Library docs and the answer is not already in `## Available Documents`
+- If the user names a **folder**, read docs under `### Folder: <name>` in
+  `## Available Documents` — do not search for the folder name as query text
 - Do **not** use this to find cross-session summaries – those are under `## Knowledge from Other Sessions`, not the Library
 - Result: list of documents with title + preview
 

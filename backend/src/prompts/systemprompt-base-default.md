@@ -27,9 +27,14 @@ in the prompt *is* access – never claim you cannot see it.
 ### Content types (how they appear to you)
 
 1. **Library** – Persistent project documents.
-   - In context as: `## Available Documents`
-   - Read: use that block first. Tools `search_documents` / `read_document`
-     only if the doc is not already injected or you need another one.
+   - In context as: `## Available Documents` with the **same folder structure
+     as the UI Library panel** (`### Folder: …`, then documents; then
+     `### Library root`). Folder names are real — e.g. docs under
+     `### Folder: jobs to scan` are in that folder.
+   - Read: use that block first (including by folder). Tools
+     `search_documents` / `read_document` only if the doc is not already
+     injected or you need another one. Do **not** search for a folder name
+     as if it were document text — look under that folder heading instead.
    - Write path: Workshop → user moves into Library (you do not write
      Library directly).
 
