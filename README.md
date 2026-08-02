@@ -16,10 +16,10 @@ A local **context manager**: dual-chat (draft vs audit/verify), session-aware pr
 **How it works:** The UI talks to `/api/v1`. The backend assembles prompts from stored context modules and optional RAG hits, calls Gemini and/or Claude, streams responses, and persists messages, usage, and artifacts. Keys stay in `backend/.env`; data stays on your machine.
 
 > **Information for Recruiters & Hiring Managers**  
-> This monorepo is a **personal portfolio project** (not a commercial SaaS, **not** a Turing College assignment). Clone it, run it locally, and explore the implementation.  
+> This monorepo is a **personal portfolio project** (not a commercial SaaS).  
 > Start with this README and [ARCHITECTURE.md](ARCHITECTURE.md) (context flow, optional RAG, dual-chat, artifacts). An overview PDF may be added later.  
 > Source code is **AGPL-3.0**; marked portfolio docs/assets are **CC BY-NC-ND 4.0** (see [LICENSE-ASSETS.md](LICENSE-ASSETS.md)).  
-> Companion flagship (Turing College capstone, separate repo): [turing-capstone-escape-room-agent](https://github.com/sb-turing-college/turing-capstone-escape-room-agent).
+> Related portfolio project: [turing-capstone-escape-room-agent](https://github.com/sb-turing-college/turing-capstone-escape-room-agent).
 
 Architecture (incl. A1 trust model and trade-offs): [ARCHITECTURE.md](ARCHITECTURE.md#5-design-decisions--trade-offs) · Disclaimer: [DISCLAIMER.md](DISCLAIMER.md)
 
@@ -64,7 +64,7 @@ This repository ships **source only**. Not included (see `.gitignore`):
 - Python envs (`.venv/`) — created by `uv sync`
 - `node_modules/` — installed by the start script or `npm install` in `ui/`
 - Local data (`*.db`, `chroma_data/`, acceptance markers)
-- `uv.lock` (may exist locally; **gitignored**, same policy as Capstone)
+- `uv.lock` (may exist locally; **gitignored**)
 
 ```powershell
 copy backend\.env.example backend\.env   # set provider API keys (required)
@@ -98,7 +98,3 @@ docker compose up --build
 |----------|---------|
 | Program source code | [AGPL-3.0](LICENSE) |
 | Marked portfolio docs / assets (when present) | [CC BY-NC-ND 4.0](LICENSE-ASSETS.md) |
-
-## Legacy split repos
-
-Earlier separate backend, UI, and docs repositories are **frozen** historical sources. New work happens only in this monorepo.
