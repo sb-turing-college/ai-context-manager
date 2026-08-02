@@ -349,7 +349,8 @@ async def execute_with_tools(
     print("[tool] injected TURN SUMMARY before final answer")
     final_response = await provider.generate_text(
         messages=current_messages,
-        temperature=temperature
+        temperature=temperature,
+        max_tokens=8192,
     )
     final_text = strip_echoed_turn_summary(_extract_text_content(final_response))
     usage = getattr(final_response, "usage", None) or {}
@@ -388,7 +389,8 @@ async def _call_gemini_with_tools(
     tool = types.Tool(function_declarations=function_declarations)
     config = types.GenerateContentConfig(
         temperature=temperature,
-        tools=[tool]
+        tools=[tool],
+        max_output_tokens=8192,
     )
     if system_instruction:
         config.system_instruction = system_instruction
@@ -418,7 +420,7 @@ async def _call_claude_with_tools(
     # Build request with tools
     params = {
         "model": provider.model,
-        "max_tokens": 4096,
+        "max_tokens": 8192,  # tool turns: room for long draft content
         "temperature": temperature,
         "messages": chat_messages,
         "tools": tools

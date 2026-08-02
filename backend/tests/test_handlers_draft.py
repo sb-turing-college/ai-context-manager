@@ -46,28 +46,31 @@ async def test_handle_create_draft_without_reason():
 
 @pytest.mark.asyncio
 async def test_handle_create_draft_empty_title():
-    """Test creating draft with empty title (should still work - no validation)."""
+    """Empty title must fail so the model can retry with a real title."""
     result = await draft.handle_create_draft(
         title="",
         content="Content"
     )
-    
-    assert result["success"] is True
-    assert result["draft"]["title"] == ""
-    # Note: No validation in handler - frontend should validate
+
+    assert result["success"] is False
+    assert "title" in result["error"].lower()
+    assert "draft" not in result
+    assert "retry" in result["message"].lower()
 
 
 @pytest.mark.asyncio
 async def test_handle_create_draft_empty_content():
-    """Test creating draft with empty content (should still work)."""
+    """Empty content must fail so title-only tool calls do not open the workshop."""
     result = await draft.handle_create_draft(
         title="Title",
         content=""
     )
-    
-    assert result["success"] is True
-    assert result["draft"]["content"] == ""
-    # Note: No validation in handler - frontend should validate
+
+    assert result["success"] is False
+    assert "content" in result["error"].lower()
+    assert "draft" not in result
+    assert "retry" in result["message"].lower()
+    assert "title only" in result["message"].lower()
 
 
 @pytest.mark.asyncio

@@ -75,6 +75,26 @@ async def handle_create_draft(
     reason: str | None = None
 ) -> dict:
     """Create a draft for the workshop."""
+    if title is None or not str(title).strip():
+        return {
+            "success": False,
+            "error": "create_draft requires a non-empty 'title'.",
+            "message": (
+                "Retry create_draft with both 'title' and full 'content' "
+                "(Markdown allowed)."
+            ),
+        }
+    if content is None or not str(content).strip():
+        return {
+            "success": False,
+            "error": "create_draft requires non-empty 'content'.",
+            "message": (
+                "Do not call create_draft with title only. "
+                "Retry with the complete draft body in 'content'."
+            ),
+        }
+    title = str(title).strip()
+    content = str(content)
     return {
         "success": True,
         "draft": {
