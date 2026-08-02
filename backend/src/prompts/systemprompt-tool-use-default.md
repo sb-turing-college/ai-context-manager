@@ -24,19 +24,20 @@
 
 ### update_status
 - Updates an existing status entry
-- Parameters: `status_id` (from context, format: `ID: abc-123`), `content` (new value), `reason`
+- Parameters: `topic_id` (from context, format: `ID: abc-123`), **at least one of** `content` or `title`, and `reason`
+- **Never** call with only `topic_id` — without `content` and/or `title` the update is rejected
 - IMPORTANT: First check whether the status exists (ID present in context?)
   - YES → use update_status
   - NO → use create_status
 - Base the update on the **live** value in `## Current Status` this turn, not
   on chat memory (other sessions/UI may have changed it since).
 - Compute new values yourself (e.g. 500 - 100 = 400)
-- Example: Context shows "Credits (ID: `abc-123`): 500", user says "spent €100" → update_status(status_id="abc-123", content="400", reason="Spent €100, 500-100=400")
+- Example: Context shows "Credits (ID: `abc-123`): 500", user says "spent €100" → update_status(topic_id="abc-123", content="400", reason="Spent €100, 500-100=400")
 - At most once per prompt (each tool only once!)
 
 ### delete_status
 - Deletes a status entry
-- Parameters: `status_id` (from context)
+- Parameters: `topic_id` (from context)
 - Use when: user explicitly says "delete status"
 
 ### upsert_user_fact

@@ -55,11 +55,31 @@ async def execute_tool(
     # Note: read_status removed - Status is always in context
     
     elif tool_name == "update_status":
+        topic_id = parameters.get("topic_id")
+        content = parameters.get("content")
+        title = parameters.get("title")
+        if not topic_id:
+            return {
+                "success": False,
+                "error": (
+                    "update_status requires 'topic_id' "
+                    "(from ## Current Status, format: ID: `...`)."
+                ),
+            }
+        if content is None and title is None:
+            return {
+                "success": False,
+                "error": (
+                    "update_status requires at least 'content' or 'title' "
+                    "(plus 'topic_id' and 'reason'). "
+                    "Retry with the new value; do not call with topic_id alone."
+                ),
+            }
         return await status.handle_update_status(
             db=db,
-            topic_id=parameters.get("topic_id"),
-            content=parameters.get("content"),
-            title=parameters.get("title"),
+            topic_id=topic_id,
+            content=content,
+            title=title,
             reason=parameters.get("reason"),
             session_id=session_id,
         )
