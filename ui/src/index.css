@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+body {
+  @apply bg-slate-900 text-slate-200 antialiased;
+}
+
+/* Custom Scrollbar - Darker */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(15 23 42); /* slate-900 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(51 65 85); /* slate-700 */
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1.5px rgb(0 0 0); /* black border for visibility - decimal supported via shadow */
+  border: 1px solid transparent; /* fallback */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(71 85 105); /* slate-600 */
+  box-shadow: inset 0 0 0 1.5px rgb(0 0 0);
+  border: 1px solid transparent;
+}

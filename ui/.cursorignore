@@ -1,0 +1,13 @@
+﻿# Secrets - never expose to AI context
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# This file itself - AI must not edit its own restrictions
+.cursorignore
+
+# Build artifacts
+node_modules/
+dist/

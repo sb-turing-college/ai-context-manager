@@ -1,0 +1,8 @@
+# PDF / Office - keep binary (Windows CRLF would corrupt PDFs)
+*.pdf binary
+*.PDF binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary

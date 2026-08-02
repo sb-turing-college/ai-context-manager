@@ -1,0 +1,74 @@
+[project]
+name = "ai-context-manager-backend"
+version = "0.1.0"
+description = "FastAPI backend for AI Context Manager"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-or-later" }
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "sqlalchemy>=2.0.36",
+    "alembic>=1.14.0",
+    "aiosqlite>=0.20.0",
+    "google-genai>=0.2.0",
+    "anthropic>=0.40.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.28.0",
+    "chromadb>=0.5.0",
+    "fastembed>=0.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/ai-context-manager"
+Documentation = "http://localhost:8000/docs"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Application layout: run via `uv run` from backend/ with PYTHONPATH=.
+# Do not install a wheel for local/dev; deps only.
+[tool.uv]
+package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-timeout>=2.3.0",
+    "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+timeout = 5
+timeout_method = "thread"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+]
+ignore = [
+    "E501",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]

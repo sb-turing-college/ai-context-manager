@@ -1,0 +1,50 @@
+# AI Context Manager — local / Docker Compose (monorepo root)
+#
+# Usage (from repo root):
+#   docker compose up --build
+#   docker compose up          # if images already built
+#
+# Requires backend/.env (copy from backend/.env.example).
+# For day-to-day local dev without Docker, prefer: .\scripts\start-all.ps1
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-context-manager-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      # Exposed for local health checks / OpenAPI; production may rely on frontend proxy only.
+      - "8000:8000"
+    volumes:
+      - sqlite_data:/data/sqlite
+      - chroma_data:/data/chroma
+      - fastembed_cache:/data/fastembed
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+    container_name: ai-context-manager-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  sqlite_data:
+  chroma_data:
+  fastembed_cache:

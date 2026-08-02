@@ -1,0 +1,22 @@
+﻿# Secrets - never expose to AI context
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# This file itself - AI must not edit its own restrictions
+.cursorignore
+
+# Build artifacts / large generated files
+.venv/
+__pycache__/
+*.pyc
+chroma_data/
+app.db
+
+# Frontend build artifacts
+node_modules/
+dist/
