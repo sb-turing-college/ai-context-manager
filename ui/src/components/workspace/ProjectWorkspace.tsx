@@ -178,6 +178,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
         currentChat={currentChat}
         isThinking={artifact.isThinking}
         isAITyping={sessionChat.isAITyping}
+        liveProgress={sessionChat.liveProgress}
         chatInput={sessionChat.chatInput}
         selectedModel={sessionChat.selectedModel}
         onModelChange={sessionChat.setSelectedModel}

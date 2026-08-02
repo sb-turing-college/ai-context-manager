@@ -1,6 +1,15 @@
 import { useState } from 'react'
 import type { Session, SessionId, StatusTopic, ChatMessage, SendState, SystemPromptModule, LibraryItem, StatusTopicItem } from '../types'
-import { sendChatMessage, type DraftData, type EditData } from '../services/chatService'
+import {
+  sendChatMessageWithProgress,
+  type DraftData,
+  type EditData,
+} from '../services/chatService'
+import {
+  applyProgressEvent,
+  EMPTY_LIVE_PROGRESS,
+  type LiveProgressState,
+} from '../components/chat/LiveProgressBubble'
 import { deleteSession } from '../services/sessionService'
 import { DEFAULT_MODEL_CHAT_A } from '../config/models'
 import { getChatAModelSync, setChatAModelSync } from '../services/settingsService'
@@ -61,6 +70,7 @@ export function useSessionChatLogic({
   const [isFlyingStatus, setIsFlyingStatus] = useState(false)
   // Single state machine for send operations (replaces multiple boolean flags)
   const [chatSendState, setChatSendState] = useState<SendState>({ status: 'idle' })
+  const [liveProgress, setLiveProgress] = useState<LiveProgressState | null>(null)
   
   // Derived state for backwards compatibility
   const isAITyping = chatSendState.status === 'sending'
@@ -529,29 +539,41 @@ export function useSessionChatLogic({
       const fromSession = sessions.find((s) => s.id === activeSession)?.attachedSummaryIds || []
       const attachedIds = [...new Set([...fromSession, ...selectedSummaries])]
 
-      const response = await sendChatMessage({
-        message: messageContent,
-        sessionId: activeSession,
-        model: selectedModel,
-        includeSummaries: attachedIds,
-        context: {
-          system_prompt: systemPromptModules
-            .map(m => m.content)
-            .filter(Boolean)
-            .join('\n\n---\n\n'),
-          documents: libraryItems.map(item => ({
-            id: item.id,
-            title: item.title,
-            content: item.content
-          })),
-          status_topics: statusTopics.map(topic => ({
-            id: topic.id,
-            title: topic.title,
-            content: topic.content
-          })),
-          implicit_context: getWorkshopContent?.()
+      setLiveProgress(EMPTY_LIVE_PROGRESS)
+      const response = await sendChatMessageWithProgress(
+        {
+          message: messageContent,
+          sessionId: activeSession,
+          model: selectedModel,
+          includeSummaries: attachedIds,
+          context: {
+            system_prompt: systemPromptModules
+              .map(m => m.content)
+              .filter(Boolean)
+              .join('\n\n---\n\n'),
+            documents: libraryItems.map(item => ({
+              id: item.id,
+              title: item.title,
+              content: item.content
+            })),
+            status_topics: statusTopics.map(topic => ({
+              id: topic.id,
+              title: topic.title,
+              content: topic.content
+            })),
+            implicit_context: getWorkshopContent?.()
+          }
+        },
+        {
+          onEvent: (event) => {
+            if (event.type === 'stage' || event.type === 'tool') {
+              setLiveProgress((prev) =>
+                applyProgressEvent(prev ?? EMPTY_LIVE_PROGRESS, event)
+              )
+            }
+          },
         }
-      })
+      )
 
       // Success: Validate response has content
       if (!response.content || response.content.trim() === '') {
@@ -645,6 +667,7 @@ export function useSessionChatLogic({
       setChatAModelSync(selectedModel)
 
       // State Machine: sending → idle
+      setLiveProgress(null)
       setChatSendState({ status: 'idle' })
 
       // Auto-scroll to bottom
@@ -657,6 +680,7 @@ export function useSessionChatLogic({
     } catch (error) {
       // State Machine: sending → error
       // Rollback: Remove optimistic user message
+      setLiveProgress(null)
       setChatsBySession(prev => ({
         ...prev,
         [activeSession]: (prev[activeSession] || []).filter(m => m.id !== optimisticId)
@@ -689,6 +713,7 @@ export function useSessionChatLogic({
     selectedModel,
     setSelectedModel: handleSetSelectedModel,
     isAITyping,
+    liveProgress,
     chatSendState,
     restoreMessage,
     clearSendError,

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ChatMessage, Session, SummaryTriggerMode } from '../../types'
 import { ALL_MODELS, type ModelOption } from '../../config/models'
 import { TypingIndicator } from './TypingIndicator'
+import { LiveProgressBubble, type LiveProgressState } from './LiveProgressBubble'
 import { FeedbackBlock } from './FeedbackBlock'
 import { ArchiveBlock } from './ArchiveBlock'
 import { SummaryBlock } from './SummaryBlock'
@@ -16,6 +17,8 @@ interface ChatPanelProps {
   currentChat: ChatMessage[]
   isThinking: boolean
   isAITyping: boolean
+  /** Live tool/stage progress for Chat A (null when idle) */
+  liveProgress?: LiveProgressState | null
   chatInput: string
   selectedModel: string
   onModelChange: (model: string) => void
@@ -77,6 +80,7 @@ export function ChatPanel({
   currentChat,
   isThinking,
   isAITyping,
+  liveProgress = null,
   chatInput,
   showTags,
   contextDrawerOpen,
@@ -467,13 +471,15 @@ export function ChatPanel({
           })
         )}
         
-        {/* Typing Indicator - AI response or Summary creation */}
-        {(isAITyping || (isThinking && sessionRequired)) && (
+        {/* Live progress (Chat A) or typing indicator (summary / Chat B) */}
+        {isAITyping && liveProgress && sessionRequired !== false ? (
+          <LiveProgressBubble progress={liveProgress} />
+        ) : (isAITyping || (isThinking && sessionRequired)) ? (
           <TypingIndicator
             label={isThinking && sessionRequired ? 'Creating summary' : 'AI generating'}
             variant="chat"
           />
-        )}
+        ) : null}
       </div>
 
       {/* Snap-to-Message Navigation */}

@@ -410,105 +410,112 @@ export async function restoreArchivedMessages(sessionId: string): Promise<number
   return data.restored
 }
 
-// --- Streaming Support (Server-Sent Events) ---
+// --- Progress SSE (tools/stages; full ChatResponse in done) ---
 
-/**
- * Stream a chat message with real-time response
- * Uses fetch with ReadableStream for Server-Sent Events (SSE)
- * 
- * @param request - The chat request
- * @param onChunk - Callback for each chunk of text
- * @param onComplete - Callback when streaming is complete
- * @param onError - Callback for errors
- * @returns Cleanup function to abort the stream
- */
-export function streamChatMessage(
-  request: ChatRequest,
-  onChunk: (text: string) => void,
-  onComplete: (fullText: string) => void,
-  onError: (error: Error) => void
-): () => void {
-  if (!USE_API) {
-    onError(new Error('API mode unexpectedly disabled'))
-    return () => {} // No-op cleanup
+/** Progress events from POST /api/v1/chat/send/progress */
+export type ChatProgressEvent =
+  | { type: 'stage'; stage: 'thinking' | 'generating' }
+  | {
+      type: 'tool'
+      tool: string
+      status: 'running' | 'done' | 'failed'
+      summary?: string
+    }
+  | { type: 'done'; response: ChatResponse }
+  | { type: 'error'; message: string; retryable?: boolean }
+
+/** Parse SSE `data:` lines from a fetch Response body (carry buffer). */
+export async function* parseSseStream<T>(response: Response): AsyncGenerator<T> {
+  if (!response.ok || !response.body) {
+    let detail = `Stream request failed: ${response.status}`
+    try {
+      const err = await response.json()
+      if (err?.detail) detail = typeof err.detail === 'string' ? err.detail : detail
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail)
   }
 
-  // Real API streaming with fetch
-  let fullText = ''
-  const abortController = new AbortController()
-  
-  const startStreaming = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/v1/chat/send?stream=true`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id: request.sessionId,
-          message: request.message,
-          model: request.model,
-          temperature: 1.0, // Required for Gemini 3 models (safe default for all models)
-          use_tools: false // Tools not supported in streaming yet
-        }),
-        signal: abortController.signal
-      })
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-
-      if (!reader) {
-        throw new Error('No response body')
-      }
-
-      while (true) {
-        const { done, value } = await reader.read()
-        
-        if (done) {
-          onComplete(fullText)
-          break
-        }
-
-        const chunk = decoder.decode(value, { stream: true })
-        const lines = chunk.split('\n')
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6) // Remove 'data: ' prefix
-            
-            if (data === '[DONE]') {
-              onComplete(fullText)
-              return
-            }
-
-            try {
-              const parsed = JSON.parse(data)
-              if (parsed.content) {
-                fullText += parsed.content
-                onChunk(parsed.content)
-              }
-              if (parsed.error) {
-                throw new Error(parsed.error)
-              }
-            } catch (err) {
-              // Ignore parse errors for incomplete chunks
-            }
-          }
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (trimmed.startsWith('data: ')) {
+        try {
+          yield JSON.parse(trimmed.slice(6)) as T
+        } catch {
+          // skip malformed / partial
         }
       }
-    } catch (err) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        onError(err)
+    }
+  }
+}
+
+/**
+ * Send a chat message with live progress (tools/stages via SSE).
+ * Resolves with the final ChatResponse from the `done` event.
+ */
+export async function sendChatMessageWithProgress(
+  request: ChatRequest,
+  options?: {
+    onEvent?: (event: ChatProgressEvent) => void
+    signal?: AbortSignal
+  }
+): Promise<ChatResponse> {
+  if (!USE_API) {
+    throw new Error('API mode unexpectedly disabled')
+  }
+
+  const response = await fetch(`${API_BASE}/api/v1/chat/send/progress`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: request.sessionId,
+      message: request.message,
+      model: request.model,
+      temperature: 1.0,
+      include_summaries: request.includeSummaries || [],
+      use_tools: true,
+      context: request.context,
+    }),
+    signal: options?.signal,
+  })
+
+  let finalResponse: ChatResponse | null = null
+
+  for await (const event of parseSseStream<ChatProgressEvent>(response)) {
+    options?.onEvent?.(event)
+    if (event.type === 'error') {
+      throw new Error(event.message || 'Chat progress error')
+    }
+    if (event.type === 'done') {
+      finalResponse = {
+        content: event.response.content,
+        model: event.response.model,
+        usage: event.response.usage || {},
+        cache_info: event.response.cache_info,
+        user_message_id: event.response.user_message_id,
+        ai_message_id: event.response.ai_message_id,
+        tool_calls: event.response.tool_calls,
+        turn_summary: event.response.turn_summary,
+        turn_ok: event.response.turn_ok,
+        draft_data: event.response.draft_data,
+        edit_data_list: event.response.edit_data_list,
       }
     }
   }
 
-  startStreaming()
-  
-  return () => {
-    abortController.abort()
+  if (!finalResponse) {
+    throw new Error('Chat ended without a done event')
   }
+  return finalResponse
 }
-

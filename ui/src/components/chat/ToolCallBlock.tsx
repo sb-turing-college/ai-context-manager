@@ -179,8 +179,8 @@ export function ToolCallBlock({
   )
 }
 
-// Helper: Get display info for tool type
-function getToolDisplayInfo(tool: string): { icon: string; label: string } {
+/** Display icon/label for a tool name (shared with LiveProgressBubble). */
+export function getToolDisplayInfo(tool: string): { icon: string; label: string } {
   switch (tool) {
     case 'create_status':
       return { icon: '🔧', label: 'Status created' }
@@ -196,8 +196,16 @@ function getToolDisplayInfo(tool: string): { icon: string; label: string } {
       return { icon: '📄', label: 'Document read' }
     case 'create_draft':
       return { icon: '📝', label: 'Draft created' }
+    case 'edit_draft':
+      return { icon: '✏️', label: 'Draft edit' }
+    case 'upsert_user_fact':
+      return { icon: '👤', label: 'User fact' }
+    case 'delete_user_fact':
+      return { icon: '👤', label: 'User fact deleted' }
+    case 'search_past_sessions':
+      return { icon: '🔎', label: 'Session search' }
     default:
-      return { icon: '🔧', label: 'Tool' }
+      return { icon: '🔧', label: tool.replace(/_/g, ' ') }
   }
 }
 

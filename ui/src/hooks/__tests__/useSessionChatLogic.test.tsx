@@ -15,7 +15,7 @@ import type { Session, ChatMessage, SystemPromptModule, LibraryItem, StatusTopic
 
 // Mock chatService
 vi.mock('../../services/chatService', () => ({
-  sendChatMessage: vi.fn(),
+  sendChatMessageWithProgress: vi.fn(),
 }))
 
 // Mock sessionService (deleteSession needed for session deletion)
@@ -244,7 +244,7 @@ describe('useSessionChatLogic', () => {
         usage: {},
       }
 
-      vi.mocked(chatService.sendChatMessage).mockResolvedValue(mockResponse)
+      vi.mocked(chatService.sendChatMessageWithProgress).mockResolvedValue(mockResponse)
 
       const props = {
         ...defaultProps,
@@ -262,7 +262,7 @@ describe('useSessionChatLogic', () => {
         await result.current.handleSendMessage()
       })
 
-      expect(chatService.sendChatMessage).toHaveBeenCalled()
+      expect(chatService.sendChatMessageWithProgress).toHaveBeenCalled()
       // Input is cleared after sending
       await act(async () => {
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -282,11 +282,11 @@ describe('useSessionChatLogic', () => {
         await result.current.handleSendMessage()
       })
 
-      expect(chatService.sendChatMessage).not.toHaveBeenCalled()
+      expect(chatService.sendChatMessageWithProgress).not.toHaveBeenCalled()
     })
 
     it('should handle errors', async () => {
-      vi.mocked(chatService.sendChatMessage).mockRejectedValue(new Error('API error'))
+      vi.mocked(chatService.sendChatMessageWithProgress).mockRejectedValue(new Error('API error'))
 
       const props = {
         ...defaultProps,

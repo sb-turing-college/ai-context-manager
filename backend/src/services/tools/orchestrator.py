@@ -4,7 +4,11 @@ Coordinates between LLM and tool execution with multiple iterations.
 Claim guard / turn summary live in sibling modules (SoC).
 """
 
+from __future__ import annotations
+
 import json
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +25,22 @@ from src.services.tools.turn_summary import (
     build_turn_summary,
     strip_echoed_turn_summary,
 )
+
+ProgressEventCallback = Callable[[dict[str, Any]], Awaitable[None]]
+
+
+async def _emit_progress(
+    on_event: ProgressEventCallback | None,
+    payload: dict[str, Any],
+) -> None:
+    if on_event is not None:
+        await on_event(payload)
+
+
+def _tool_summary(result: dict) -> str:
+    msg = result.get("message") or result.get("error") or ""
+    text = str(msg).replace("\n", " ").strip()
+    return text[:120] if text else ""
 
 
 def _tool_call_dedupe_key(tc: dict) -> str:
@@ -76,6 +96,7 @@ async def execute_with_tools(
     session_id: str | None = None,
     search_scope: str = "project_only",
     current_draft: str | None = None,
+    on_event: ProgressEventCallback | None = None,
 ) -> tuple[str, list[dict], dict]:
     """Execute LLM request with tool calling support.
     
@@ -94,6 +115,7 @@ async def execute_with_tools(
         project_id: Current project ID
         temperature: Sampling temperature
         max_iterations: Maximum tool call iterations
+        on_event: Optional async callback for live progress events
         
     Returns:
         Tuple of (final_response_text, tool_call_history, usage_dict)
@@ -120,8 +142,11 @@ async def execute_with_tools(
     # Tool call history for response
     tool_call_history = []
     current_messages = messages.copy()
+    response_text = ""
     
     for iteration in range(max_iterations):
+        await _emit_progress(on_event, {"type": "stage", "stage": "thinking"})
+
         # Call LLM with tools
         if is_gemini:
             response = await _call_gemini_with_tools(
@@ -135,6 +160,7 @@ async def execute_with_tools(
             tool_calls = extract_tool_calls_from_claude(response)
         else:
             # No tool support for this provider
+            await _emit_progress(on_event, {"type": "stage", "stage": "generating"})
             response = await provider.generate_text(current_messages, temperature)
             return response.content, [], response.usage
         
@@ -147,6 +173,7 @@ async def execute_with_tools(
         
         # No tool calls - return final answer (with any text)
         if not tool_calls:
+            await _emit_progress(on_event, {"type": "stage", "stage": "generating"})
             usage = _extract_usage_from_response(response, is_gemini)
             return (
                 strip_echoed_turn_summary(response_text),
@@ -162,13 +189,20 @@ async def execute_with_tools(
         terminal_tool_executed = False
         terminal_tool_result = ""  # Stores result of the terminal tool specifically
         for tool_call in tool_calls:
+            tool_name = tool_call["name"]
             try:
                 # Log tool call attempt (ASCII — Windows cp1252 consoles choke on emoji)
-                print(f"[tool] call: {tool_call['name']}")
+                print(f"[tool] call: {tool_name}")
                 print(f"   params: {tool_call['arguments']}")
+
+                await _emit_progress(on_event, {
+                    "type": "tool",
+                    "tool": tool_name,
+                    "status": "running",
+                })
                 
                 result = await execute_tool(
-                    tool_name=tool_call["name"],
+                    tool_name=tool_name,
                     parameters=tool_call["arguments"],
                     db=db,
                     project_id=project_id,
@@ -181,25 +215,37 @@ async def execute_with_tools(
                 if result.get("success"):
                     print(f"   [ok] {result.get('message', 'OK')}")
                     
-                    if tool_call["name"] in TERMINAL_TOOLS:
+                    if tool_name in TERMINAL_TOOLS:
                         # Flag only — keep processing remaining tools in this round
                         terminal_tool_executed = True
+                    await _emit_progress(on_event, {
+                        "type": "tool",
+                        "tool": tool_name,
+                        "status": "done",
+                        "summary": _tool_summary(result),
+                    })
                 else:
                     print(f"   [fail] {result.get('error', 'Unknown error')}")
+                    await _emit_progress(on_event, {
+                        "type": "tool",
+                        "tool": tool_name,
+                        "status": "failed",
+                        "summary": _tool_summary(result),
+                    })
                 
                 # Format result for LLM
                 formatted_result = format_tool_result_for_llm(
-                    tool_call["name"], result
+                    tool_name, result
                 )
                 
                 # Capture terminal tool result immediately after formatting
                 # (cannot use tool_call_history[-1] later – other tools may be appended after)
-                if result.get("success") and tool_call["name"] in TERMINAL_TOOLS:
+                if result.get("success") and tool_name in TERMINAL_TOOLS:
                     terminal_tool_result = formatted_result
                 
                 # Add to history
                 tool_call_history.append({
-                    "tool_name": tool_call["name"],
+                    "tool_name": tool_name,
                     "arguments": tool_call["arguments"],
                     "result": result,
                     "formatted_result": formatted_result
@@ -212,7 +258,7 @@ async def execute_with_tools(
                     # For now, we provide results as user messages
                     current_messages.append(LLMMessage(
                         role="user",
-                        content=f"[Tool Result: {tool_call['name']}]\n{formatted_result}"
+                        content=f"[Tool Result: {tool_name}]\n{formatted_result}"
                     ))
                 elif is_claude:
                     # Claude: Add tool_result message
@@ -225,15 +271,15 @@ async def execute_with_tools(
                 # Tool execution error - log for debugging
                 import traceback
                 error_details = traceback.format_exc()
-                print(f"[tool] error: {tool_call['name']}")
+                print(f"[tool] error: {tool_name}")
                 print(f"   params: {tool_call['arguments']}")
                 print(f"   error: {str(e)}")
                 print(f"   traceback:\n{error_details}")
                 
                 # Tool execution error
-                error_message = f"Tool execution error '{tool_call['name']}': {str(e)}"
+                error_message = f"Tool execution error '{tool_name}': {str(e)}"
                 tool_call_history.append({
-                    "tool_name": tool_call["name"],
+                    "tool_name": tool_name,
                     "arguments": tool_call["arguments"],
                     "result": {
                         "success": False,
@@ -241,6 +287,12 @@ async def execute_with_tools(
                         "message": error_message
                     },
                     "formatted_result": error_message
+                })
+                await _emit_progress(on_event, {
+                    "type": "tool",
+                    "tool": tool_name,
+                    "status": "failed",
+                    "summary": error_message[:120],
                 })
                 
                 current_messages.append(LLMMessage(
@@ -263,6 +315,7 @@ async def execute_with_tools(
         # Terminal ends the OUTER loop only after the full round finished
         if terminal_tool_executed:
             print("[tool] terminal draft tool in batch — ending outer loop after round")
+            await _emit_progress(on_event, {"type": "stage", "stage": "generating"})
             usage = _extract_usage_from_response(response, is_gemini)
             # System owns the confirmation: chat body = formatted tool results only.
             # Do NOT concatenate pre-tool model prose (duplicate success lines).
@@ -290,6 +343,7 @@ async def execute_with_tools(
     # Max iterations reached – final call WITHOUT tools, but with hard turn
     # summary so the model cannot hallucinate create_draft / fake successes.
     print("[tool] max iterations reached — final answer call without tools")
+    await _emit_progress(on_event, {"type": "stage", "stage": "generating"})
     turn_summary = build_turn_summary(tool_call_history)
     current_messages.append(LLMMessage(role="user", content=turn_summary))
     print("[tool] injected TURN SUMMARY before final answer")
