@@ -6,7 +6,7 @@ export function useLibraryLogic(
   currentProject: string | null,
   allLibraryItems: LibraryItem[],
   setAllLibraryItems: React.Dispatch<React.SetStateAction<LibraryItem[]>>,
-  _allLibraryFolders: LibraryFolder[],
+  allLibraryFolders: LibraryFolder[],
   setAllLibraryFolders: React.Dispatch<React.SetStateAction<LibraryFolder[]>>,
   setArtifactStep: React.Dispatch<React.SetStateAction<number>>,
   setArtifactContent: React.Dispatch<React.SetStateAction<string>>,
@@ -209,8 +209,19 @@ export function useLibraryLogic(
     }
   }
 
+  const getActiveFolderId = (): string | null => {
+    const folderId = [...expandedFolders][0] ?? null
+    if (!folderId || !currentProject) return null
+    const exists = allLibraryFolders.some(
+      (folder) => folder.id === folderId && folder.projectId === currentProject
+    )
+    return exists ? folderId : null
+  }
+
   const handleImportFile = async (files: FileList | null) => {
     if (!files || files.length === 0 || !currentProject) return
+
+    const targetFolderId = getActiveFolderId()
 
     // Process each file
     const importPromises = Array.from(files).map(async (file) => {
@@ -240,7 +251,7 @@ export function useLibraryLogic(
         content,
         type: itemType,
         projectId: currentProject,
-        folderId: null,
+        folderId: targetFolderId,
         version: 1,
         timestamp: new Date().toISOString()
       })
@@ -267,6 +278,7 @@ export function useLibraryLogic(
     )
     if (itemsToCopy.length === 0) return
 
+    const targetFolderId = getActiveFolderId()
     const created: LibraryItem[] = []
     const failedTitles: string[] = []
 
@@ -277,7 +289,7 @@ export function useLibraryLogic(
           content: source.content,
           type: source.type,
           projectId: currentProject,
-          folderId: null,
+          folderId: targetFolderId,
           version: 1,
           timestamp: new Date().toISOString(),
         })
@@ -311,7 +323,7 @@ export function useLibraryLogic(
       content,
       type: 'text',
       projectId: currentProject,
-      folderId: null,
+      folderId: getActiveFolderId(),
       version: 1,
       timestamp: new Date().toISOString()
     })
