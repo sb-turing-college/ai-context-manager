@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { StatusHistoryEntry, StatusTopicItem } from '../../types'
 
 interface StatusHistoryModalProps {
@@ -55,25 +56,28 @@ function buildTimeline(topics: StatusTopicItem[]): TimelineRow[] {
   return rows
 }
 
-function previewValue(value: string, max = 240): string {
-  const text = (value || '').replace(/\n/g, ' / ')
-  if (!text) return '(empty)'
-  if (text.length <= max) return text
-  return `${text.slice(0, max).trimEnd()}…`
-}
-
 /**
  * Project-wide status change audit (chronological).
- * Shell matches ContentViewModal / LibraryViewModal; body is a flat event list.
+ * Collapsed: timestamp / action / topic only. Expanded: full details (accordion).
  */
 export function StatusHistoryModal({
   isOpen,
   onClose,
   statusTopics,
 }: StatusHistoryModalProps) {
+  const [expandedKey, setExpandedKey] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) setExpandedKey(null)
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const timeline = buildTimeline(statusTopics)
+
+  const toggleRow = (key: string) => {
+    setExpandedKey((prev) => (prev === key ? null : key))
+  }
 
   return (
     <div
@@ -88,7 +92,7 @@ export function StatusHistoryModal({
           <div>
             <h3 className="text-lg font-semibold text-slate-100">Status history</h3>
             <p className="text-xs text-slate-400 mt-1">
-              Project-wide change audit (newest first)
+              Project-wide change audit (newest first). Click a row for details.
             </p>
           </div>
           <button
@@ -108,6 +112,7 @@ export function StatusHistoryModal({
             <ul className="divide-y divide-slate-700 border border-slate-600 rounded-lg overflow-hidden">
               {timeline.map((row) => {
                 const { entry, action, topicTitle } = row
+                const isOpenRow = expandedKey === row.key
                 const renamed =
                   entry.previous_title &&
                   entry.new_title &&
@@ -118,41 +123,61 @@ export function StatusHistoryModal({
                   : null
 
                 return (
-                  <li key={row.key} className="px-4 py-3 bg-slate-800">
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <span className="text-xs text-slate-400 font-mono shrink-0">
-                        {formatTimestamp(entry.timestamp)}
-                      </span>
-                      <span className="text-xs text-slate-300 shrink-0">
-                        {action}
-                      </span>
-                      <span className="text-xs text-slate-100 font-medium truncate">
-                        {topicTitle}
-                      </span>
-                    </div>
+                  <li key={row.key} className="bg-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => toggleRow(row.key)}
+                      className={`w-full text-left px-4 py-3 transition-colors ${
+                        isOpenRow
+                          ? 'bg-slate-700/50'
+                          : 'hover:bg-slate-700/40'
+                      }`}
+                      aria-expanded={isOpenRow}
+                    >
+                      <div className="flex items-baseline gap-3 min-w-0">
+                        <span className="text-xs text-slate-400 font-mono shrink-0">
+                          {formatTimestamp(entry.timestamp)}
+                        </span>
+                        <span className="text-xs text-slate-300 shrink-0">
+                          {action}
+                        </span>
+                        <span className="text-xs text-slate-100 font-medium truncate min-w-0">
+                          {topicTitle}
+                        </span>
+                        <span className="text-slate-500 text-xs shrink-0 ml-auto">
+                          {isOpenRow ? '▾' : '▸'}
+                        </span>
+                      </div>
+                    </button>
 
-                    {entry.reason && (
-                      <p className="text-xs text-slate-300 mt-1.5">
-                        <span className="text-slate-500">Reason: </span>
-                        {entry.reason}
-                      </p>
-                    )}
+                    {isOpenRow && (
+                      <div className="px-4 pb-3 pt-0 space-y-1.5 border-t border-slate-700/60">
+                        {entry.reason && (
+                          <p className="text-xs text-slate-300 mt-2 whitespace-pre-wrap break-words">
+                            <span className="text-slate-500">Reason: </span>
+                            {entry.reason}
+                          </p>
+                        )}
 
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      {sessionBit ? `${sessionBit} · ` : ''}
-                      source: {sourceLabel}
-                    </p>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          {sessionBit ? `${sessionBit} · ` : ''}
+                          source: {sourceLabel}
+                        </p>
 
-                    {renamed && (
-                      <p className="text-xs text-slate-400 mt-1.5 font-mono">
-                        Title: &quot;{entry.previous_title}&quot; → &quot;{entry.new_title}&quot;
-                      </p>
-                    )}
+                        {renamed && (
+                          <p className="text-xs text-slate-400 mt-1.5 font-mono whitespace-pre-wrap break-words">
+                            Title: &quot;{entry.previous_title}&quot; → &quot;
+                            {entry.new_title}&quot;
+                          </p>
+                        )}
 
-                    {action !== 'Created' && (
-                      <p className="text-xs text-slate-400 mt-1 font-mono whitespace-pre-wrap break-words">
-                        Previous: {previewValue(entry.content)}
-                      </p>
+                        {action !== 'Created' && (
+                          <p className="text-xs text-slate-400 mt-1 font-mono whitespace-pre-wrap break-words">
+                            <span className="text-slate-500">Previous: </span>
+                            {entry.content?.trim() ? entry.content : '(empty)'}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </li>
                 )
