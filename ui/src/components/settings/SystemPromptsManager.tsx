@@ -246,7 +246,7 @@ export function SystemPromptsManager() {
               
               {/* Last modified */}
               <div className="mt-2 text-xs text-slate-500">
-                Last modified: {new Date(prompt.last_modified).toLocaleString('de-DE')}
+                Last modified: {new Date(prompt.last_modified).toLocaleString('en-US')}
               </div>
             </div>
           </div>

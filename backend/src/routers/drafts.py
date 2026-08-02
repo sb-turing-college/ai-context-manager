@@ -85,7 +85,7 @@ async def save_draft(
         # Create new draft
         draft = Draft(
             session_id=session_id,
-            title=draft_data.title or "Entwurf",
+            title=draft_data.title or "Draft",
             content=draft_data.content or "",
             history=([h.model_dump() for h in draft_data.history] if draft_data.history else []),
             current_version=draft_data.current_version or 1

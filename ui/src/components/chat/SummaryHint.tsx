@@ -94,7 +94,7 @@ export function SummaryHint({
                     <span className="text-orange-500 text-lg mt-0.5">⚡</span>
                     <div>
                       <p className="text-sm font-medium text-slate-200">
-                        Token-Limit erreicht
+                        Token limit reached
                       </p>
                       <p className="text-xs text-slate-400 mt-0.5">
                         A summary is recommended to compress context.

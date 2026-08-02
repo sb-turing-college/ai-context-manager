@@ -32,13 +32,13 @@ const AUTO_CHECK_MODES: { mode: ToolAutoCheckMode; label: string; description: s
   },
   { 
     mode: 'on_request', 
-    label: 'Nur auf Anfrage', 
+    label: 'On request only', 
     description: 'AI checks only when explicitly requested',
     disabled: true 
   },
   { 
     mode: 'ai_decides', 
-    label: 'KI entscheidet', 
+    label: 'AI decides', 
     description: 'AI decides based on context',
     disabled: true 
   }
@@ -118,7 +118,7 @@ export function ToolUseSettingsPanel({
       {onSearchPastSessionsScopeChange && (
         <div>
           <label className="text-sm font-medium text-slate-300 block mb-3">
-            Semantische Suche (search_past_sessions)
+            Semantic search (search_past_sessions)
           </label>
           <div className="space-y-2">
             {SEARCH_SCOPE_OPTIONS.map(({ value, label, description }) => (

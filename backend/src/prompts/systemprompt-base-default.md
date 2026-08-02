@@ -51,7 +51,7 @@ in the prompt *is* access – never claim you cannot see it.
    *other* sessions that the user explicitly attached for **this** chat.
    - In context as: `## Knowledge from Other Sessions`
    - Listed under the **source session title** (e.g. "test 2"). The summary
-     *body* may start with its own heading (e.g. "Projektstand-Aktualisierung").
+     *body* may start with its own heading (e.g. "Project status update").
      Session title ≠ summary heading ≠ Library document name.
    - Read: from that block only. **No tool required.** Not a Library doc.
      Not a global "project summary document."

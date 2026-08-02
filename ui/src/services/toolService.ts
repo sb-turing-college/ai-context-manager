@@ -462,7 +462,7 @@ export function getEnabledToolDefinitions(
 
 /**
  * Generate tool use instructions for system prompt
- * This text is injected into the "Tool-Nutzung" module
+ * This text is injected into the "Tool use" module
  */
 export function generateToolUsePromptSection(
   enabledTools: Record<ToolName, boolean>

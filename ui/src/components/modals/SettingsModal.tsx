@@ -132,7 +132,7 @@ export function SettingsModal({
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700'
             }`}
           >
-            Kosten
+            Costs
           </button>
         </div>
 
@@ -211,7 +211,7 @@ export function SettingsModal({
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-300 block mb-2">Animationen</label>
+                <label className="text-sm font-medium text-slate-300 block mb-2">Animations</label>
                 <select 
                   value={animationsEnabled ? 'enabled' : 'disabled'}
                   onChange={(e) => onAnimationsChange(e.target.value === 'enabled')}
@@ -229,7 +229,7 @@ export function SettingsModal({
                   className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="hide">Hidden (Enter to send)</option>
-                  <option value="show">Angezeigt</option>
+                  <option value="show">Shown</option>
                 </select>
                 <p className="text-xs text-slate-500 mt-1">Tip: Press Enter to send, Shift+Enter for a new line</p>
               </div>
@@ -242,7 +242,7 @@ export function SettingsModal({
                 </select>
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-300 block mb-2">Benachrichtigungen</label>
+                <label className="text-sm font-medium text-slate-300 block mb-2">Notifications</label>
                 <select className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option>Sound</option>
                   <option>Silent</option>
@@ -304,7 +304,7 @@ export function SettingsModal({
 
               {/* Summary Model */}
               <div>
-                <label className="text-sm font-medium text-slate-300 block mb-2">Summary-Modell</label>
+                <label className="text-sm font-medium text-slate-300 block mb-2">Summary model</label>
                 <p className="text-xs text-slate-400 mb-2">Which model should be used for summaries?</p>
                 <div className="space-y-2 mb-3">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -331,7 +331,7 @@ export function SettingsModal({
                       }}
                       className="accent-blue-500"
                     />
-                    <span className="text-sm text-slate-200">Bestimmtes Modell</span>
+                    <span className="text-sm text-slate-200">Specific model</span>
                   </label>
                 </div>
                 {(appSettings?.summaryModelMode ?? 'current') === 'fixed' && (
@@ -389,7 +389,7 @@ export function SettingsModal({
                   {[
                     { 
                       mode: 'automatic' as SummaryTriggerMode, 
-                      label: 'Automatisch', 
+                      label: 'Automatic', 
                       description: 'Summary is created automatically (brief UI hint)' 
                     },
                     { 
@@ -399,7 +399,7 @@ export function SettingsModal({
                     },
                     { 
                       mode: 'disabled' as SummaryTriggerMode, 
-                      label: 'Aus', 
+                      label: 'Off', 
                       description: 'No automatic summary suggestions' 
                     }
                   ].map(({ mode, label, description }) => (
@@ -432,7 +432,7 @@ export function SettingsModal({
               {toolUseSettings && (
                 <div className="border-t border-slate-700 pt-6">
                   <h4 className="text-sm font-semibold text-slate-200 mb-4">
-                    Tool-Nutzung
+                    Tool use
                   </h4>
                   <ToolUseSettingsPanel
                     autoCheckMode={toolUseSettings.autoCheckMode}
@@ -459,7 +459,7 @@ export function SettingsModal({
           {currentTab === 'costs' && (
             <div className="space-y-4">
               <h4 className="text-sm font-semibold text-slate-200 mb-4">
-                Token-Nutzung & Kosten
+                Token usage & costs
               </h4>
               <p className="text-xs text-slate-400 mb-4">
                 Real token counts from API responses. Should match provider consoles.

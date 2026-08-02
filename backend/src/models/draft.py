@@ -30,7 +30,7 @@ class Draft(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid4()))
     session_id = Column(String, ForeignKey("sessions.id"), nullable=False, unique=True)
-    title = Column(String, nullable=False, default="Entwurf")
+    title = Column(String, nullable=False, default="Draft")
     content = Column(Text, nullable=False, default="")
     history = Column(JSON, nullable=False, default=list)  # [{ version: 1, content: "..." }, ...]
     current_version = Column(Integer, nullable=False, default=1)

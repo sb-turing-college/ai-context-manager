@@ -224,7 +224,7 @@ export async function sendChatBMessage(request: ChatBSendRequest): Promise<ChatR
 
 /**
  * Get Chat B (Auditor) history for a session
- * Transforms messages with [ENTWURF V{n}] prefix to draft role with draftData
+ * Transforms messages with [DRAFT V{n}] prefix to draft role with draftData
  */
 export async function getAuditMessages(sessionId: string): Promise<ChatMessage[]> {
   if (!USE_API) {
@@ -242,13 +242,13 @@ export async function getAuditMessages(sessionId: string): Promise<ChatMessage[]
     
     // Convert to frontend format, detect draft messages by prefix
     return messages.map((msg: any) => {
-      const timestamp = new Date(msg.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      const timestamp = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       
-      // Check if this is a draft message (has [ENTWURF V{n}] prefix)
-      const draftMatch = msg.content.match(/^\[ENTWURF V(\d+)\]\n\n/)
+      // Check if this is a draft message (has [DRAFT V{n}] prefix)
+      const draftMatch = msg.content.match(/^\[DRAFT V(\d+)\]\n\n/)
       if (draftMatch && msg.role === 'user') {
         const version = parseInt(draftMatch[1], 10)
-        const draftContent = msg.content.replace(/^\[ENTWURF V\d+\]\n\n/, '')
+        const draftContent = msg.content.replace(/^\[DRAFT V\d+\]\n\n/, '')
         return {
           id: msg.id,
           role: 'draft' as const,
@@ -312,7 +312,7 @@ export async function saveAuditUserMessage(
 
   // If saving as draft, add version prefix
   const finalContent = asDraft 
-    ? `[ENTWURF V${asDraft.version}]\n\n${content}`
+    ? `[DRAFT V${asDraft.version}]\n\n${content}`
     : content
 
   try {

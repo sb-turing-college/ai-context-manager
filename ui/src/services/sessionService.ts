@@ -194,7 +194,7 @@ export async function duplicateSession(
   if (!USE_API) {
     throw new Error('duplicateSession requires API mode')
   }
-  const newSession = await createSession(projectId, `${sourceTitle} (Kopie)`)
+  const newSession = await createSession(projectId, `${sourceTitle} (Copy)`)
   const copyableRoles = new Set(['user', 'ai', 'feedback', 'tool'])
   for (const msg of sourceMessages) {
     if (copyableRoles.has(msg.role)) {

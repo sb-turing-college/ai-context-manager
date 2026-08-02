@@ -122,7 +122,7 @@ export function CostDashboard() {
           onClick={fetchStats}
           className="ml-2 text-blue-400 hover:text-blue-300"
         >
-          Erneut versuchen
+          Retry
         </button>
       </div>
     )
@@ -169,7 +169,7 @@ export function CostDashboard() {
       {/* Provider Total */}
       <div className="pt-2 border-t border-slate-700">
         <div className="text-xs text-slate-400">
-          Gesamt: {formatNumber(provider.total_input_tokens)} in / {formatNumber(provider.total_output_tokens)} out
+          Total: {formatNumber(provider.total_input_tokens)} in / {formatNumber(provider.total_output_tokens)} out
         </div>
         <div className="text-sm font-medium text-slate-200">
           {formatCost(provider.total_cost)}
@@ -206,7 +206,7 @@ export function CostDashboard() {
         <div className="flex justify-between items-center">
           <div>
             <div className="text-xs text-slate-400">
-              Gesamtkosten: {formatNumber(stats.total.input_tokens)} in / {formatNumber(stats.total.output_tokens)} out
+              Total cost: {formatNumber(stats.total.input_tokens)} in / {formatNumber(stats.total.output_tokens)} out
             </div>
             <div className="text-lg font-medium text-slate-100">
               {formatCost(stats.total.cost)}

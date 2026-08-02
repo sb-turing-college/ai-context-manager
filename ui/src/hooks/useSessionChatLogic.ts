@@ -236,7 +236,7 @@ export function useSessionChatLogic({
     const newSession: Session = {
       ...sourceSession,
       id: newSessionId,
-      title: `${sourceSession.title} (Kopie)`,
+      title: `${sourceSession.title} (Copy)`,
       active: false,
       messageCount: sourceMessages.length
     }
@@ -349,7 +349,7 @@ export function useSessionChatLogic({
     const copiedMessages: ChatMessage[] = selectedMsgs.map(({ message }) => ({
       ...message,
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }))
 
     // Add to target session
@@ -392,7 +392,7 @@ export function useSessionChatLogic({
     const movedMessages: ChatMessage[] = selectedMsgs.map(({ message }) => ({
       ...message,
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }))
 
     // Update chats: remove from sources, add to target
@@ -499,7 +499,7 @@ export function useSessionChatLogic({
       id: optimisticId,
       role: 'user',
       content: messageContent,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
 
     setChatsBySession(prev => ({
@@ -563,14 +563,14 @@ export function useSessionChatLogic({
         id: response.user_message_id || optimisticId, // Fallback to optimistic if not provided
         role: 'user',
         content: messageContent,
-        timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       }
       
       const aiMessage: ChatMessage = {
         id: response.ai_message_id || `ai-${Date.now()}`, // Fallback to generated ID
         role: 'ai',
         content: response.content,
-        timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         model: response.model || selectedModel,
         inputTokens: response.usage?.prompt_tokens,
         outputTokens: response.usage?.completion_tokens,

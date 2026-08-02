@@ -3,7 +3,7 @@ import type { UserFactItem, UserFactCategory } from '../../types'
 
 const CATEGORY_OPTIONS: { value: UserFactCategory; label: string }[] = [
   { value: 'preference', label: 'Preferences' },
-  { value: 'style', label: 'Kommunikationsstil' },
+  { value: 'style', label: 'Communication style' },
   { value: 'expertise', label: 'Expertise' },
   { value: 'context', label: 'Context & role' }
 ]
@@ -70,7 +70,7 @@ export function UserFactsPanel({
             className="text-xs text-slate-400 hover:text-blue-400 transition-colors"
             title="Add new fact"
           >
-            + Neu
+            + New
           </button>
         )}
       </div>

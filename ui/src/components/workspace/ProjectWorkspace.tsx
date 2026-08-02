@@ -353,7 +353,7 @@ export function ProjectWorkspace(props: ProjectWorkspaceProps) {
           onCreateDraft={() => {}} // Not applicable to Chat B
           onToggleFeedbackExpand={() => {}} // Not applicable to Chat B
           onTransferFeedback={handleTransferFeedback} // Transfer Chat B conversation to Chat A
-          onResetChatB={handleResetChatB} // "Neue Runde" button
+          onResetChatB={handleResetChatB} // "New round" button
           chatBResetConfirm={chatBResetConfirm}
           onConfirmResetChatB={handleConfirmResetChatB}
           onCancelResetChatB={handleCancelResetChatB}

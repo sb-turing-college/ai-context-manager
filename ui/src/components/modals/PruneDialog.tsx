@@ -48,7 +48,7 @@ export function PruneDialog({
           
           <div className="bg-slate-800 border border-slate-600 rounded p-3">
             <div className="text-xs text-slate-400 space-y-1">
-              <div>✓ Alte Versionen bleiben erhalten</div>
+              <div>✓ Old versions are kept</div>
               <div>✓ Backup is created automatically</div>
               <div>✓ System message will be inserted</div>
             </div>

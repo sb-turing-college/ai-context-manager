@@ -30,7 +30,7 @@ export function buildLibraryAuditSession(opts: {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: `Please critically review this draft:\n\n---\n${artifactContent}\n---\n\n${selectedItems.length > 0 ? `\nAdditional context: ${selectedItems.length} library items were provided.` : ''}`,
-      timestamp: new Date().toLocaleTimeString('de-DE', {
+      timestamp: new Date().toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
       }),
@@ -41,7 +41,7 @@ export function buildLibraryAuditSession(opts: {
       content:
         MOCK_AUDIT_CRITIQUES[persona as keyof typeof MOCK_AUDIT_CRITIQUES] ||
         MOCK_AUDIT_CRITIQUES.devil,
-      timestamp: new Date().toLocaleTimeString('de-DE', {
+      timestamp: new Date().toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
       }),

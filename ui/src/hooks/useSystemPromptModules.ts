@@ -11,7 +11,7 @@ import {
  * 
  * Features:
  * - Loads modules from backend on mount
- * - 3 modules: Allgemeine Regeln, Tool-Nutzung, Rolle
+ * - 3 modules: General rules, Tool use, Role
  * - Accordion behavior (one expanded at a time, or none)
  * - Editable content with Reset functionality
  * - All changes synced to backend

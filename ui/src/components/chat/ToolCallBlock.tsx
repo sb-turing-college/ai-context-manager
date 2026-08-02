@@ -220,7 +220,7 @@ function getTopicName(toolCall: { tool: string; params: Record<string, unknown> 
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return '—'
   if (typeof value === 'string') return value
-  if (typeof value === 'number') return value.toLocaleString('de-DE')
+  if (typeof value === 'number') return value.toLocaleString('en-US')
   if (typeof value === 'boolean') return value ? 'Yes' : 'No'
   
   try {

@@ -47,7 +47,7 @@ export function ArchiveBlock({
       const text = messages
         .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
         .join('\n\n')
-      navigator.clipboard.writeText(`[Archiv]\n\n${text}`)
+      navigator.clipboard.writeText(`[Archive]\n\n${text}`)
     }
     setCopySuccess(true)
     setTimeout(() => setCopySuccess(false), 1000)

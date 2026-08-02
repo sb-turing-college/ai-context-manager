@@ -104,12 +104,12 @@ async def audit_draft(
         has_history = len(audit_history) > 0
         
         # Save draft as user message (visible in Chat B history)
-        # Uses [ENTWURF V{n}] prefix for frontend DraftBlock detection
+        # Uses [DRAFT V{n}] prefix for frontend DraftBlock detection
         draft_msg = AuditMessage(
             id=str(uuid.uuid4()),
             session_id=request.session_id,
             role="user",
-            content=f"[ENTWURF V{request.draft_version}]\n\n{request.draft_content}",
+            content=f"[DRAFT V{request.draft_version}]\n\n{request.draft_content}",
             timestamp=datetime.now(UTC)
         )
         db.add(draft_msg)
@@ -134,7 +134,7 @@ async def audit_draft(
                 context_messages.append(LLMMessage(role=msg.role, content=msg.content))
             
             # Add new draft (already saved to DB, but also add to context for LLM)
-            context_messages.append(LLMMessage(role="user", content=f"[ENTWURF V{request.draft_version}]\n\n{request.draft_content}"))
+            context_messages.append(LLMMessage(role="user", content=f"[DRAFT V{request.draft_version}]\n\n{request.draft_content}"))
             
             print(f"🔄 Audit followup mode: {len(audit_history)} messages in history")
         else:

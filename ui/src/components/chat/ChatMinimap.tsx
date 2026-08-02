@@ -25,7 +25,7 @@ export function ChatMinimap({ messages, onScrollToMessage }: ChatMinimapProps) {
               if (msg.role === 'user') color = 'bg-blue-500'
               
               // Detect specific events/content for special dots
-              const isSummary = msg.content.includes('Summary erstellt') || msg.content.includes('Summary created') || msg.content.includes('[Summary]')
+              const isSummary = msg.content.includes('Summary created') || msg.content.includes('[Summary]')
               const isDraft = msg.content.includes('Draft created')
               
               if (isSummary) color = 'bg-purple-500 ring-2 ring-purple-900'

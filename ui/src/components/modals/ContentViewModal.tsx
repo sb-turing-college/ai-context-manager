@@ -79,7 +79,7 @@ export function ContentViewModal({
               showCopySuccess ? 'ring-2 ring-green-500' : ''
             }`}
           >
-            {showCopySuccess ? '✓ Kopiert!' : 'Copy'}
+            {showCopySuccess ? '✓ Copied!' : 'Copy'}
           </button>
           <button
             onClick={onClose}

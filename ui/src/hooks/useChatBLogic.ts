@@ -139,7 +139,7 @@ export function useChatBLogic() {
       id: `chatb-user-${Date.now()}`,
       role: 'user',
       content: input,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     }
     setMessages(prev => [...prev, userMessage])
     setInput('')
@@ -166,7 +166,7 @@ export function useChatBLogic() {
         id: `chatb-ai-${Date.now()}`,
         role: 'ai',
         content: response.content,
-        timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
         model: response.model || model
       }
       setMessages(prev => [...prev, aiMessage])
@@ -231,7 +231,7 @@ export function useChatBLogic() {
       id: `chatb-draft-${Date.now()}`,
       role: 'draft',
       content: draftContent,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       draftData: {
         draftVersion,
         isExpanded: false
@@ -261,7 +261,7 @@ export function useChatBLogic() {
       id: `chatb-draft-${Date.now()}`,
       role: 'draft',
       content: draftContent,
-      timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
       draftData: {
         draftVersion,
         isExpanded: false

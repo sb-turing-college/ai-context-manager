@@ -308,9 +308,9 @@ export function SessionSidebar(props: SessionSidebarProps) {
         <button
           onClick={() => clearSelection()}
           className="text-xs hover:text-yellow-300 transition-colors"
-          title="Auswahl aufheben"
+          title="Clear selection"
         >
-          Aufheben ✕
+          Clear ✕
         </button>
       </div>
     </div>

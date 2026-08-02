@@ -303,7 +303,7 @@ describe('chatService', () => {
         {
           id: 'msg-1',
           role: 'user',
-          content: '[ENTWURF V1]\n\nDraft content here',
+          content: '[DRAFT V1]\n\nDraft content here',
           timestamp: '2024-01-01T10:00:00Z',
         },
       ]
