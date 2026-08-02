@@ -67,11 +67,20 @@ export function LibraryPanel({
   onConfirmDeleteFolderKeepFiles,
   onCancelDeleteFolder
 }: LibraryPanelProps) {
-  // Flexible width (rem-based, scales with font size)
-  const CONTENT_MAX_WIDTH = 'max-w-64'  // 16rem
-
   const rootItems = libraryItems.filter((item) => !item.folderId)
-  
+  const expandedFolderId = [...expandedFolders][0] ?? null
+  const expandedFolder =
+    expandedFolderId != null
+      ? libraryFolders.find((folder) => folder.id === expandedFolderId) ?? null
+      : null
+  const showExpandedFolderItems =
+    expandedFolder != null &&
+    renamingFolderId !== expandedFolder.id &&
+    deleteFolderConfirmId !== expandedFolder.id
+  const expandedFolderItems = showExpandedFolderItems
+    ? libraryItems.filter((item) => item.folderId === expandedFolder.id)
+    : []
+
   const renderLibraryItem = (item: LibraryItem) => {
     const extension = item.type === 'pdf' ? '.pdf' : item.type === 'markdown' ? '.md' : '.txt'
     const isRenaming = renamingItemId === item.id
@@ -79,7 +88,7 @@ export function LibraryPanel({
     return (
       <div 
         key={item.id} 
-        className={`flex items-center gap-1 ${CONTENT_MAX_WIDTH}`}
+        className="flex items-center gap-1 w-full min-w-0"
       >
         {removeConfirmItemId === item.id ? (
           <div className="flex items-center gap-1">
@@ -174,11 +183,12 @@ export function LibraryPanel({
     const itemCount = libraryItems.filter((item) => item.folderId === folder.id).length
     const isRenaming = renamingFolderId === folder.id
     const isDeleting = deleteFolderConfirmId === folder.id
+    const isExpanded = expandedFolders.has(folder.id)
     const entryLabel = itemCount === 1 ? '1 document' : `${itemCount} documents`
 
     if (isRenaming) {
       return (
-        <div key={folder.id} className={`flex items-center gap-1 ${CONTENT_MAX_WIDTH}`}>
+        <div key={folder.id} className="flex items-center gap-1 w-full min-w-0">
           <input
             type="text"
             value={renameFolderValue}
@@ -188,7 +198,7 @@ export function LibraryPanel({
               if (e.key === 'Escape') onCancelRenameFolder()
             }}
             autoFocus
-            className="flex-1 px-2 py-1 bg-slate-700 border border-blue-600 rounded text-xs text-slate-100 focus:outline-none"
+            className="flex-1 min-w-0 px-2 py-1 bg-slate-700 border border-blue-600 rounded text-xs text-slate-100 focus:outline-none"
           />
           <button
             onClick={onConfirmRenameFolder}
@@ -208,7 +218,7 @@ export function LibraryPanel({
 
     if (isDeleting) {
       return (
-        <div key={folder.id} className={`space-y-2 ${CONTENT_MAX_WIDTH}`}>
+        <div key={folder.id} className="space-y-2 w-full min-w-0">
           <p className="px-2 py-1 bg-slate-800 rounded text-xs text-orange-400">
             {itemCount > 0
               ? `Delete folder "${folder.name}"? It contains ${entryLabel}. Documents will be kept in the library root.`
@@ -233,7 +243,7 @@ export function LibraryPanel({
     }
 
     return (
-      <div key={folder.id} className={`flex items-center gap-1 ${CONTENT_MAX_WIDTH}`}>
+      <div key={folder.id} className="flex flex-wrap items-center gap-1 w-full min-w-0">
         <button
           onClick={() => onToggleFolder(folder.id)}
           onDragOver={(e) => {
@@ -251,10 +261,14 @@ export function LibraryPanel({
               onMoveToFolder(itemId, folder.id)
             }
           }}
-          className="flex-1 flex items-center justify-between px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded transition-colors text-left"
+          className={`flex-1 min-w-0 flex items-center justify-between px-2 py-1 rounded transition-colors text-left ${
+            isExpanded
+              ? 'bg-slate-700/50 hover:bg-slate-700/70'
+              : 'bg-slate-800 hover:bg-slate-700'
+          }`}
         >
-          <span className="text-xs font-medium text-slate-300">
-            {expandedFolders.has(folder.id) ? '📂' : '📁'} {folder.name}
+          <span className="text-xs font-medium text-slate-300 truncate">
+            {isExpanded ? '📂' : '📁'} {folder.name}
             {itemCount > 0 && <span className="text-slate-500 ml-1">({itemCount})</span>}
           </span>
         </button>
@@ -277,8 +291,8 @@ export function LibraryPanel({
   return (
     <div className="h-full min-h-0 flex flex-col">
       {/* Action Buttons — always visible */}
-      <div className="shrink-0 p-3 pb-2 space-y-2">
-        <div className="flex gap-2 pb-2 border-b border-slate-700" id="library-action-buttons">
+      <div className="shrink-0 p-3 pb-2">
+        <div className="flex flex-wrap gap-2 pb-2 border-b border-slate-700" id="library-action-buttons">
           <button
             onClick={onOpenCreateDocumentModal}
             className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded text-xs text-slate-300 transition-colors"
@@ -305,59 +319,58 @@ export function LibraryPanel({
             Export all
           </button>
         </div>
+      </div>
 
-        {/* Folder rows pinned above the document list (drop targets stay visible) */}
+      {/* Folders left, files right */}
+      <div className="flex-1 min-h-0 flex gap-0 px-3 pb-3">
         {libraryFolders.length > 0 && (
-          <div className="space-y-2 pb-2 border-b border-slate-700">
+          <div className="w-[40%] min-w-0 shrink-0 flex flex-col border-r border-slate-700 pr-2 mr-2 overflow-auto space-y-2">
             {libraryFolders.map(renderFolderRow)}
           </div>
         )}
-      </div>
 
-      {/* Documents — scrollable */}
-      <div className="flex-1 min-h-0 overflow-auto px-3 pb-3 space-y-3">
-        {libraryItems.length === 0 && libraryFolders.length === 0 && (
-          <div className="text-center text-slate-500 text-xs py-2">
-            No entries.
-          </div>
-        )}
-
-        {libraryFolders.map((folder) => {
-          if (!expandedFolders.has(folder.id)) return null
-          if (renamingFolderId === folder.id || deleteFolderConfirmId === folder.id) return null
-          const folderItems = libraryItems.filter((item) => item.folderId === folder.id)
-          if (folderItems.length === 0) {
-            return (
-              <div key={`empty-${folder.id}`} className="space-y-1">
-                <p className="text-[10px] uppercase tracking-wider text-slate-500">
-                  {folder.name}
-                </p>
-                <p className="text-xs text-slate-500 pl-2">Empty folder</p>
-              </div>
-            )
-          }
-          return (
-            <div key={`items-${folder.id}`} className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-slate-500">
-                {folder.name}
-              </p>
-              <div className="ml-2 space-y-2">
-                {folderItems.map(renderLibraryItem)}
-              </div>
+        <div className="flex-1 min-w-0 overflow-auto space-y-3">
+          {libraryItems.length === 0 && libraryFolders.length === 0 && (
+            <div className="text-center text-slate-500 text-xs py-2">
+              No entries.
             </div>
-          )
-        })}
+          )}
 
-        {rootItems.length > 0 && (
-          <div className="space-y-2">
-            {libraryFolders.length > 0 && (
+          {showExpandedFolderItems && expandedFolder && (
+            <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-slate-500">
-                Library root
+                {expandedFolder.name}
+              </p>
+              {expandedFolderItems.length === 0 ? (
+                <p className="text-xs text-slate-500 pl-2">Empty folder</p>
+              ) : (
+                <div className="space-y-2">
+                  {expandedFolderItems.map(renderLibraryItem)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {rootItems.length > 0 && (
+            <div className="space-y-2">
+              {libraryFolders.length > 0 && (
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">
+                  Library root
+                </p>
+              )}
+              {rootItems.map(renderLibraryItem)}
+            </div>
+          )}
+
+          {libraryFolders.length > 0 &&
+            rootItems.length === 0 &&
+            !showExpandedFolderItems &&
+            libraryItems.length > 0 && (
+              <p className="text-xs text-slate-500 py-2">
+                Select a folder to view its documents.
               </p>
             )}
-            {rootItems.map(renderLibraryItem)}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )

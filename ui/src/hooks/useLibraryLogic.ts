@@ -322,14 +322,12 @@ export function useLibraryLogic(
   }
 
   const handleToggleFolder = (folderId: string) => {
-    setExpandedFolders(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(folderId)) {
-        newSet.delete(folderId)
-      } else {
-        newSet.add(folderId)
+    // Accordion: at most one folder open
+    setExpandedFolders((prev) => {
+      if (prev.has(folderId)) {
+        return new Set()
       }
-      return newSet
+      return new Set([folderId])
     })
   }
 
