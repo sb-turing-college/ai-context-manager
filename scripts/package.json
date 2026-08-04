@@ -1,0 +1,8 @@
+{
+  "name": "acm-dev-scripts",
+  "private": true,
+  "description": "Dev-only process orchestration for monorepo start scripts. Not part of the backend or UI runtime.",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

@@ -63,7 +63,7 @@ async def init_default_settings(db: AsyncSession) -> None:
                 updated_at=datetime.now(UTC)
             )
             db.add(default_setting)
-            print(f"  🔒 Created immutable default for: {key}")
+            print(f"  Created immutable default for: {key}")
         else:
             previous_default_content = (
                 existing_default.value.get("content", "") if existing_default.value else ""
@@ -91,14 +91,14 @@ async def init_default_settings(db: AsyncSession) -> None:
                 updated_at=datetime.now(UTC)
             )
             db.add(setting)
-            print(f"  ✅ Created default system prompt: {key}")
+            print(f"  Created default system prompt: {key}")
         else:
             existing_content = existing.value.get("content", "") if existing.value else ""
             
             if existing_content in PLACEHOLDER_VALUES:
                 existing.value = {"content": content}
                 existing.updated_at = datetime.now(UTC)
-                print(f"  🔄 Updated placeholder system prompt: {key}")
+                print(f"  Updated placeholder system prompt: {key}")
             elif (
                 previous_default_content
                 and existing_content == previous_default_content
@@ -107,7 +107,7 @@ async def init_default_settings(db: AsyncSession) -> None:
                 # Still on last shipped default → forward-sync to new default
                 existing.value = {"content": content}
                 existing.updated_at = datetime.now(UTC)
-                print(f"  🔄 Synced active system prompt to new default: {key}")
+                print(f"  Synced active system prompt to new default: {key}")
             # else: User has customized it - NEVER touch it on startup!
     
     await db.commit()

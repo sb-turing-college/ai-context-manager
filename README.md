@@ -62,7 +62,7 @@ After cloning, open the UI once and accept the disclaimer modal before LLM calls
 This repository ships **source only**. Not included (see `.gitignore`):
 
 - Python envs (`.venv/`) — created by `uv sync`
-- `node_modules/` — installed by the start script or `npm install` in `ui/`
+- `node_modules/` — installed by the start script or `npm install` in `ui/` and `scripts/` (pinned `concurrently`)
 - Local data (`*.db`, `chroma_data/`, acceptance markers)
 - `uv.lock` (may exist locally; **gitignored**)
 
@@ -71,10 +71,15 @@ copy backend\.env.example backend\.env   # set provider API keys (required)
 .\scripts\start-all.ps1
 ```
 
+Stop: **Ctrl+C** in the launcher terminal (ports cleaned in `finally`). Options: `-NoBrowser` · `-SeparateWindows`.
+
 ```bash
 cp backend/.env.example backend/.env   # set provider API keys (required)
+chmod +x scripts/start-all.sh
 ./scripts/start-all.sh
 ```
+
+Stop: **Ctrl+C**. Options: `--no-browser` · `--separate-windows`.
 
 Only `backend/.env` is required. The UI talks to the API by default (`http://127.0.0.1:8000`); optional `ui/.env` can override `VITE_API_URL` (see `ui/.env.example`). On first UI load, accept the disclaimer modal before LLM calls.
 

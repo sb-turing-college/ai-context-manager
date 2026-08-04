@@ -32,6 +32,8 @@ One backend process serves the UI. Persistence is local SQLite plus a co-located
 
 **Full stack:** `scripts/start-all.ps1` / `scripts/start-all.sh` from the monorepo root.
 
+**Local launcher:** By default both services run in **one terminal** via pinned [`concurrently`](https://www.npmjs.com/package/concurrently) in `scripts/package.json` (+ lockfile). Log prefixes: `api`, `ui`. Shared helpers: `scripts/lib/`. Shutdown: Ctrl+C → `--kill-others` → port cleanup in `finally` / `trap`. Escape hatch: `-SeparateWindows` / `--separate-windows`.
+
 ---
 
 ## 2. Backend
@@ -161,6 +163,7 @@ Orchestrators (`App.tsx`) may stay larger if they only wire state + handlers and
 | Dual license | AGPL-3.0 + CC BY-NC-ND 4.0 | Same bar as Capstone portfolio project |
 | Hosting | Repo-only (no public hosted multi-user app in v1) | Lower operational/privacy surface |
 | Tool honesty | Claim guard + turn summary SSOT | Models invent success; ground truth stays in tools / Tool Log |
+| Local launcher | One-terminal `concurrently` under `scripts/` (+ lockfile); port cleanup in `finally`/`trap`; `-SeparateWindows` escape hatch | Same local-dev pattern as Capstone; avoids a root-only app `package.json` |
 
 ### Done in v1 (honest snapshot)
 

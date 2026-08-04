@@ -1,79 +1,72 @@
 #!/usr/bin/env bash
-# Capstone-style stack launcher (Unix):
-#   1) Backend  — http://127.0.0.1:8000
-#   2) Frontend — http://127.0.0.1:5173
+# Local launcher for AI Context Manager (backend + UI).
+#
+# Default: one terminal, multiplexed logs via pinned
+# `concurrently` from `scripts/package.json` (monorepo root stays clean).
+#
+# Lifecycle:
+#   1. Free known ports at start.
+#   2. Run concurrently in the foreground (colored prefixes).
+#   3. trap EXIT/INT/TERM -> port cleanup safety net after concurrently's
+#      own --kill-others handling (covers uvicorn --reload / Vite children).
+#
+# Prefixes: api, ui
 #
 # Usage (from monorepo root):
 #   ./scripts/start-all.sh
 #   ./scripts/start-all.sh --no-browser
+#   ./scripts/start-all.sh --separate-windows
 
 set -euo pipefail
 
+# Prefer UTF-8 for Python child processes (emoji in logs/prints on some hosts).
+export PYTHONUTF8=1
+export PYTHONIOENCODING=utf-8
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
+
 MONOREPO_ROOT="$(dirname "$SCRIPT_DIR")"
 BACKEND="$MONOREPO_ROOT/backend"
 UI="$MONOREPO_ROOT/ui"
 
 BACKEND_PORT=8000
 FRONTEND_PORT=5173
+HEALTH_URL="http://127.0.0.1:$BACKEND_PORT/api/v1/health"
+FRONTEND_URL="http://127.0.0.1:$FRONTEND_PORT"
+PORTS_TO_MANAGE=("$BACKEND_PORT" "$FRONTEND_PORT")
+
 NO_BROWSER=false
+SEPARATE_WINDOWS=false
 
 for arg in "$@"; do
   case "$arg" in
     --no-browser) NO_BROWSER=true ;;
+    --separate-windows) SEPARATE_WINDOWS=true ;;
+    -h|--help)
+      sed -n '1,25p' "$0"
+      exit 0
+      ;;
   esac
 done
 
-stop_port() {
-  local port=$1
-  local pids
-  if command -v lsof >/dev/null 2>&1; then
-    pids="$(lsof -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
-  elif command -v ss >/dev/null 2>&1; then
-    pids="$(ss -ltnp "sport = :$port" 2>/dev/null | grep -oP 'pid=\K[0-9]+' || true)"
-  else
-    pids=""
+CLEANED_UP=false
+cleanup() {
+  if $CLEANED_UP; then
+    return 0
   fi
-  while read -r pid; do
-    [[ -z "$pid" ]] && continue
-    echo "  Port $port occupied by PID $pid -> stopping"
-    kill "$pid" 2>/dev/null || kill -9 "$pid" 2>/dev/null || true
-  done <<< "$pids"
+  CLEANED_UP=true
+  if $SEPARATE_WINDOWS; then
+    return 0
+  fi
+  echo ""
+  echo "Safety-net port cleanup..."
+  sleep 0.5
+  stop_listening_ports "${PORTS_TO_MANAGE[@]}"
+  echo "Shutdown complete."
 }
-
-wait_for_health() {
-  local url=$1 label=$2 timeout=${3:-60}
-  echo -n "  Waiting for $label ($url) ..."
-  local deadline=$((SECONDS + timeout))
-  while (( SECONDS < deadline )); do
-    if curl -sf --max-time 2 "$url" >/dev/null 2>&1; then
-      echo " OK"
-      return 0
-    fi
-    sleep 0.5
-  done
-  echo " TIMEOUT"
-  return 1
-}
-
-wait_for_port() {
-  local port=$1 label=$2 timeout=${3:-60}
-  echo -n "  Waiting for $label (port $port) ..."
-  local deadline=$((SECONDS + timeout))
-  while (( SECONDS < deadline )); do
-    if command -v lsof >/dev/null 2>&1 && lsof -tiTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1; then
-      echo " OK"
-      return 0
-    fi
-    if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$port" 2>/dev/null | grep -q LISTEN; then
-      echo " OK"
-      return 0
-    fi
-    sleep 0.5
-  done
-  echo " TIMEOUT"
-  return 1
-}
+trap cleanup EXIT INT TERM
 
 echo "=== AI Context Manager stack launcher ==="
 
@@ -81,45 +74,65 @@ command -v uv >/dev/null || { echo "ERROR: uv not found — https://docs.astral.
 command -v npm >/dev/null || { echo "ERROR: npm not found"; exit 1; }
 [[ -d "$BACKEND" ]] || { echo "ERROR: backend/ missing"; exit 1; }
 [[ -d "$UI" ]] || { echo "ERROR: ui/ missing"; exit 1; }
-
 [[ -f "$BACKEND/.env" ]] || { echo "ERROR: backend/.env missing — copy backend/.env.example and set API keys"; exit 1; }
 
-echo
-echo "[1/4] Freeing ports ($BACKEND_PORT, $FRONTEND_PORT)..."
-stop_port "$BACKEND_PORT"
-stop_port "$FRONTEND_PORT"
-sleep 2
+echo ""
+echo "[1] Freeing ports (${PORTS_TO_MANAGE[*]})..."
+stop_listening_ports "${PORTS_TO_MANAGE[@]}"
+sleep 1
 
-echo
-echo "[2/4] Starting backend on port $BACKEND_PORT..."
-(cd "$BACKEND" && uv run uvicorn src.main:app --reload --host 127.0.0.1 --port "$BACKEND_PORT") &
-BACKEND_PID=$!
+ensure_frontend_npm_deps "$UI" "ui"
 
-echo
-echo "[3/4] Starting frontend on port $FRONTEND_PORT..."
-if [[ ! -d "$UI/node_modules" ]]; then
-  echo "  First run: installing frontend deps (npm install)..."
-  (cd "$UI" && npm install)
-fi
-(cd "$UI" && npm run dev -- --port "$FRONTEND_PORT" --host 127.0.0.1) &
-FRONTEND_PID=$!
-
-echo
-echo "[4/4] Waiting for services..."
-wait_for_health "http://127.0.0.1:$BACKEND_PORT/api/v1/health" "backend" || true
-wait_for_port "$FRONTEND_PORT" "frontend" || true
-
-if [[ "$NO_BROWSER" != "true" ]]; then
-  if command -v xdg-open >/dev/null 2>&1; then
-    xdg-open "http://127.0.0.1:$FRONTEND_PORT" >/dev/null 2>&1 || true
-  elif command -v open >/dev/null 2>&1; then
-    open "http://127.0.0.1:$FRONTEND_PORT" || true
+if $SEPARATE_WINDOWS; then
+  echo ""
+  echo "[2] Separate windows mode..."
+  start_service_terminal "api (:$BACKEND_PORT)" \
+    "cd '$BACKEND' && echo 'api' && uv run uvicorn src.main:app --reload --host 127.0.0.1 --port $BACKEND_PORT"
+  start_service_terminal "ui (:$FRONTEND_PORT)" \
+    "cd '$UI' && echo 'ui' && npm run dev -- --port $FRONTEND_PORT --host 127.0.0.1"
+  wait_http_ok "$HEALTH_URL" "api" || true
+  wait_port_listening "$FRONTEND_PORT" "ui" || true
+  if ! $NO_BROWSER; then
+    sleep 1
+    open_url "$FRONTEND_URL"
   fi
+  echo ""
+  echo "Separate windows: close each terminal to stop that service."
+  echo "  Frontend: $FRONTEND_URL"
+  echo "  Backend:  http://127.0.0.1:$BACKEND_PORT/docs"
+  SEPARATE_WINDOWS=true
+  exit 0
 fi
 
-echo
-echo "Done."
+ensure_script_npm_deps "$SCRIPT_DIR"
+
+BROWSER_PID=""
+if ! $NO_BROWSER; then
+  (
+    sleep 5
+    open_url "$FRONTEND_URL"
+  ) &
+  BROWSER_PID=$!
+fi
+
+echo ""
+echo "[2] Starting api + ui in this terminal (concurrently)..."
+echo "  Ctrl+C stops both; port cleanup runs via trap."
+echo "  Frontend: $FRONTEND_URL"
 echo "  Backend:  http://127.0.0.1:$BACKEND_PORT/docs"
-echo "  Frontend: http://127.0.0.1:$FRONTEND_PORT"
-echo "Ctrl+C stops both (PIDs $BACKEND_PID $FRONTEND_PID)."
-wait
+echo ""
+
+cd "$SCRIPT_DIR"
+npm exec -- concurrently \
+  -n "api,ui" \
+  -c "blue,cyan" \
+  --kill-others \
+  "cd '$BACKEND' && uv run uvicorn src.main:app --reload --host 127.0.0.1 --port $BACKEND_PORT" \
+  "cd '$UI' && npm run dev -- --port $FRONTEND_PORT --host 127.0.0.1"
+status=$?
+
+if [[ -n "$BROWSER_PID" ]]; then
+  kill "$BROWSER_PID" 2>/dev/null || true
+fi
+
+exit "$status"

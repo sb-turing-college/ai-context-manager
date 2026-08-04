@@ -30,18 +30,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     # Startup: Initialize database
     await init_db()
-    print("✅ Database initialized")
+    print("Database initialized")
     
     # Initialize default settings
     async for db in get_db():
         await init_default_settings(db)
-        print("✅ Default settings initialized")
+        print("Default settings initialized")
         break
     
     yield
     
     # Shutdown: Cleanup (if needed)
-    print("👋 Shutting down")
+    print("Shutting down")
 
 
 # Create FastAPI app
